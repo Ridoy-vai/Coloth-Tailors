@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { authClient } from "@/lib/auth-client";
 
 type Message = {
   role: "user" | "assistant";
@@ -31,28 +32,40 @@ export default function AIAssistant() {
   const [sessionId, setSessionId] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Get or create a persistent sessionId, then load chat history from the server
+  // Use the logged-in user's ID as the chat identifier.
+  // Guests (not logged in) fall back to a browser-local UUID — their history
+  // is only ever tied to that one browser, never mixed with a real account.
   useEffect(() => {
-    let id = localStorage.getItem("ai_assistant_session_id");
-    if (!id) {
-      id = crypto.randomUUID();
-      localStorage.setItem("ai_assistant_session_id", id);
-    }
-    setSessionId(id);
+    const resolveSessionId = async () => {
+      const { data } = await authClient.getSession();
+      const loggedInUserId = data?.user?.id;
 
-    const loadHistory = async () => {
+      let id: string;
+      if (loggedInUserId) {
+        id = `user_${loggedInUserId}`;
+      } else {
+        let guestId = localStorage.getItem("ai_assistant_guest_id");
+        if (!guestId) {
+          guestId = `guest_${crypto.randomUUID()}`;
+          localStorage.setItem("ai_assistant_guest_id", guestId);
+        }
+        id = guestId;
+      }
+
+      setSessionId(id);
+
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/assistant/history/${id}`);
-        const data = await res.json();
-        if (data.success && Array.isArray(data.messages) && data.messages.length > 0) {
-          setMessages(data.messages);
+        const data2 = await res.json();
+        if (data2.success && Array.isArray(data2.messages) && data2.messages.length > 0) {
+          setMessages(data2.messages);
         }
       } catch (err) {
         console.error("Failed to load chat history:", err);
       }
     };
 
-    loadHistory();
+    resolveSessionId();
   }, []);
 
   useEffect(() => {
