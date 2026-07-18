@@ -324,7 +324,7 @@ export default function Navbar() {
                         Profile
                       </Link>
                       <Link
-                        href="/dashboard"
+                        href={(user as any)?.role === "admin" ? "/dashboard/admin" : "/dashboard/user"}
                         onClick={closeAccountMenu}
                         className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors"
                       >
@@ -580,6 +580,6 @@ export default function Navbar() {
           </div>
         )}
       </div>
-    </nav>
+    </nav >
   );
 }
