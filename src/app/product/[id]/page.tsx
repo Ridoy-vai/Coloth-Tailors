@@ -52,6 +52,7 @@ export default function ProductDetailsPage() {
   const [addingToCart, setAddingToCart] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
   const [cartMessage, setCartMessage] = useState("");
+  const [cartMessageType, setCartMessageType] = useState<"success" | "error">("success");
 
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
@@ -155,6 +156,26 @@ export default function ProductDetailsPage() {
   const addToCart = async (redirectToCheckout = false) => {
     if (!product) return;
 
+    // Require a size/color selection whenever the product actually has those options
+    const needsSize = product.sizes?.length > 0 && !selectedSize;
+    const needsColor = product.colors?.length > 0 && !selectedColor;
+
+    if (needsSize && needsColor) {
+      setCartMessageType("error");
+      setCartMessage("Please select a size and color first.");
+      return;
+    }
+    if (needsSize) {
+      setCartMessageType("error");
+      setCartMessage("Please select a size first.");
+      return;
+    }
+    if (needsColor) {
+      setCartMessageType("error");
+      setCartMessage("Please select a color first.");
+      return;
+    }
+
     if (redirectToCheckout) setBuyingNow(true);
     else setAddingToCart(true);
     setCartMessage("");
@@ -178,13 +199,15 @@ export default function ProductDetailsPage() {
       if (!res.ok || !data.success) throw new Error(data.message);
 
       if (redirectToCheckout) {
-        router.push("/checkout");
+        router.push("/cart");
       } else {
+        setCartMessageType("success");
         setCartMessage("Added to cart!");
         setTimeout(() => setCartMessage(""), 2500);
       }
     } catch (err) {
       console.error("Failed to add to cart:", err);
+      setCartMessageType("error");
       setCartMessage("Failed to add to cart.");
     } finally {
       setAddingToCart(false);
@@ -313,12 +336,17 @@ export default function ProductDetailsPage() {
           {/* Sizes */}
           {product.sizes?.length > 0 && (
             <div className="mt-6">
-              <p className="text-sm font-medium text-gray-700 mb-2">Size</p>
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                Size <span className="text-red-500">*</span>
+              </p>
               <div className="flex flex-wrap gap-2">
                 {product.sizes.map((size) => (
                   <button
                     key={size}
-                    onClick={() => setSelectedSize(size)}
+                    onClick={() => {
+                      setSelectedSize(size);
+                      setCartMessage("");
+                    }}
                     className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
                       selectedSize === size
                         ? "bg-blue-600 text-white border-blue-600"
@@ -335,12 +363,17 @@ export default function ProductDetailsPage() {
           {/* Colors */}
           {product.colors?.length > 0 && (
             <div className="mt-5">
-              <p className="text-sm font-medium text-gray-700 mb-2">Color</p>
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                Color <span className="text-red-500">*</span>
+              </p>
               <div className="flex flex-wrap gap-2">
                 {product.colors.map((color) => (
                   <button
                     key={color}
-                    onClick={() => setSelectedColor(color)}
+                    onClick={() => {
+                      setSelectedColor(color);
+                      setCartMessage("");
+                    }}
                     className={`px-3 py-1.5 rounded-full text-xs border transition-colors ${
                       selectedColor === color
                         ? "bg-blue-600 text-white border-blue-600"
@@ -374,7 +407,13 @@ export default function ProductDetailsPage() {
           </div>
 
           {cartMessage && (
-            <p className="text-sm text-green-600 mt-2 text-center sm:text-left">{cartMessage}</p>
+            <p
+              className={`text-sm mt-2 text-center sm:text-left ${
+                cartMessageType === "error" ? "text-red-500" : "text-green-600"
+              }`}
+            >
+              {cartMessage}
+            </p>
           )}
         </div>
       </div>

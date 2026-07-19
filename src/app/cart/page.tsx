@@ -41,6 +41,7 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const [showCheckout, setShowCheckout] = useState(false);
   const [name, setName] = useState("");
@@ -90,7 +91,10 @@ export default function CartPage() {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`);
       const data = await res.json();
-      setCartItems(data.result || []);
+      const items: CartItem[] = data.result || [];
+      setCartItems(items);
+      // Select everything by default so nothing feels "missed"
+      setSelectedIds(new Set(items.map((item) => item._id)));
     } catch (err) {
       console.error("Failed to load cart:", err);
     } finally {
@@ -122,6 +126,11 @@ export default function CartPage() {
 
   const removeItem = async (cartItemId: string) => {
     setCartItems((prev) => prev.filter((c) => c._id !== cartItemId));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(cartItemId);
+      return next;
+    });
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/${cartItemId}`, { method: "DELETE" });
     } catch (err) {
@@ -130,7 +139,26 @@ export default function CartPage() {
     }
   };
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const toggleSelect = (cartItemId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(cartItemId)) next.delete(cartItemId);
+      else next.add(cartItemId);
+      return next;
+    });
+  };
+
+  const allSelected = cartItems.length > 0 && selectedIds.size === cartItems.length;
+
+  const toggleSelectAll = () => {
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(cartItems.map((item) => item._id)));
+  };
+
+  // Only the items the user has checked are included in this order
+  const selectedItems = cartItems.filter((item) => selectedIds.has(item._id));
+
+  const subtotal = selectedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const shippingFee =
     subtotal > 0
       ? deliveryLocation === "inside"
@@ -202,11 +230,34 @@ export default function CartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart items */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Select all */}
+            <label className="flex items-center gap-2 text-sm text-gray-600 px-1 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleSelectAll}
+                className="h-4 w-4 rounded border-gray-300 accent-blue-600"
+              />
+              {allSelected ? "Deselect all" : "Select all"}
+              <span className="text-gray-400">
+                ({selectedIds.size}/{cartItems.length} selected)
+              </span>
+            </label>
+
             {cartItems.map((item) => (
               <div
                 key={item._id}
-                className="flex items-center gap-4 bg-white border border-gray-200 rounded-2xl p-4"
+                className={`flex items-center gap-4 bg-white border rounded-2xl p-4 transition-colors ${
+                  selectedIds.has(item._id) ? "border-gray-200" : "border-gray-100 opacity-60"
+                }`}
               >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(item._id)}
+                  onChange={() => toggleSelect(item._id)}
+                  className="h-4 w-4 rounded border-gray-300 accent-blue-600 shrink-0"
+                />
+
                 <Link href={`/product/${item.productId}`} className="shrink-0">
                   <img
                     src={item.image}
@@ -266,7 +317,10 @@ export default function CartPage() {
 
           {/* Summary / Checkout */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 h-fit sticky top-24">
-            <h2 className="text-base font-semibold text-gray-900 mb-4">Order Summary</h2>
+            <h2 className="text-base font-semibold text-gray-900 mb-1">Order Summary</h2>
+            <p className="text-xs text-gray-400 mb-4">
+              {selectedItems.length} of {cartItems.length} item{cartItems.length !== 1 && "s"} selected
+            </p>
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between text-gray-600">
@@ -283,10 +337,17 @@ export default function CartPage() {
               </div>
             </div>
 
+            {selectedItems.length === 0 && (
+              <p className="text-xs text-amber-600 mt-3 text-center">
+                Select at least one item to check out.
+              </p>
+            )}
+
             {!showCheckout ? (
               <button
                 onClick={() => setShowCheckout(true)}
-                className="w-full mt-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
+                disabled={selectedItems.length === 0}
+                className="w-full mt-5 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Proceed to Checkout
               </button>
@@ -418,6 +479,11 @@ export default function CartPage() {
                   action={`/api/checkout-sessions`}
                   method="POST"
                   onSubmit={(e) => {
+                    if (selectedItems.length === 0) {
+                      e.preventDefault();
+                      setOrderError("Please select at least one item to check out.");
+                      return;
+                    }
                     if (
                       !name.trim() ||
                       !phone.trim() ||
@@ -452,7 +518,8 @@ export default function CartPage() {
                     value={paymentMethod === "card" ? total : shippingFee}
                   />
                   <input type="hidden" name="paymentMethod" value={paymentMethod} />
-                  <input type="hidden" name="cartItems" value={JSON.stringify(cartItems)} />
+                  <input type="hidden" name="cartItemIds" value={JSON.stringify(Array.from(selectedIds))} />
+                  <input type="hidden" name="cartItems" value={JSON.stringify(selectedItems)} />
 
                   <button
                     type="submit"

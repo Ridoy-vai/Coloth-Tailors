@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     const totalAmount = formData.get('totalAmount') as string
     const paymentMethod = formData.get('paymentMethod') as string
     const cartItemsRaw = formData.get('cartItems') as string
+    const cartItemIdsRaw = formData.get('cartItemIds') as string
 
     // ---- Parse product details ----
     let cartItems: CartItem[] = []
@@ -129,6 +130,7 @@ export async function POST(request: Request) {
         subtotal: subtotal ?? '',
         totalAmount: totalAmount ?? '',
         paymentMethod: paymentMethod ?? '',
+        cartItemIds: cartItemIdsRaw ?? '',
       },
     })
 

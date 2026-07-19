@@ -3,6 +3,13 @@ import Link from "next/link";
 import { stripe } from "../../../lib/stripe";
 
 async function placeOrder(metadata: Record<string, string>, sessionId: string) {
+  let cartItemIds: string[] = [];
+  try {
+    cartItemIds = metadata.cartItemIds ? JSON.parse(metadata.cartItemIds) : [];
+  } catch {
+    cartItemIds = [];
+  }
+
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -23,6 +30,7 @@ async function placeOrder(metadata: Record<string, string>, sessionId: string) {
       paymentMethod: metadata.paymentMethod,
       paymentStatus: metadata.paymentMethod === "card" ? "paid" : "delivery_fee_paid",
       stripeSessionId: sessionId,
+      cartItemIds,
     }),
   });
   return res.json();
