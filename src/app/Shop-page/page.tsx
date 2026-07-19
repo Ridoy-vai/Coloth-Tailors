@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import ProductCard from "../component/ProductCard";
 // import ProductCard from "@/components/ProductCard";
@@ -24,6 +24,14 @@ const CATEGORY_OPTIONS = [
 ];
 
 export default function ShopPage() {
+  return (
+    <Suspense fallback={<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">Loading shop...</div>}>
+      <ShopPageContent />
+    </Suspense>
+  );
+}
+
+function ShopPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

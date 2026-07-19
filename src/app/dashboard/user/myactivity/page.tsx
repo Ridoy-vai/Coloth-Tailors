@@ -76,13 +76,19 @@ export default function UserActivityPage() {
           try {
             const pRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${fav.productId}`);
             const pData = await pRes.json();
-            return [fav.productId, pData.result] as [string, ProductInfo];
+            return [fav.productId, pData.result as ProductInfo] as [string, ProductInfo];
           } catch {
-            return [fav.productId, null] as [string, null];
+            return [fav.productId, null] as [string, ProductInfo | null];
           }
         })
       );
-      setFavoriteProducts(Object.fromEntries(productEntries.filter(([, v]) => v)));
+      const validFavoriteProducts: Record<string, ProductInfo> = {};
+      for (const [productId, value] of productEntries) {
+        if (value) {
+          validFavoriteProducts[productId] = value;
+        }
+      }
+      setFavoriteProducts(validFavoriteProducts);
     } catch (err) {
       console.error("Failed to load favorites:", err);
     } finally {
@@ -103,13 +109,19 @@ export default function UserActivityPage() {
           try {
             const pRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/products/${review.productId}`);
             const pData = await pRes.json();
-            return [review.productId, pData.result] as [string, ProductInfo];
+            return [review.productId, pData.result as ProductInfo] as [string, ProductInfo];
           } catch {
-            return [review.productId, null] as [string, null];
+            return [review.productId, null] as [string, ProductInfo | null];
           }
         })
       );
-      setReviewProducts(Object.fromEntries(productEntries.filter(([, v]) => v)));
+      const validReviewProducts: Record<string, ProductInfo> = {};
+      for (const [productId, value] of productEntries) {
+        if (value) {
+          validReviewProducts[productId] = value;
+        }
+      }
+      setReviewProducts(validReviewProducts);
     } catch (err) {
       console.error("Failed to load reviews:", err);
     } finally {
