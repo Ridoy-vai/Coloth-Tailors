@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
@@ -16,6 +16,24 @@ type CartItem = {
   quantity: number;
 };
 
+// Delivery charges — adjust these values as needed
+const DELIVERY_FEE_INSIDE_DHAKA = 5;
+const DELIVERY_FEE_OUTSIDE_DHAKA = 10;
+
+// All 64 districts of Bangladesh
+const DISTRICTS = [
+  "Bagerhat", "Bandarban", "Barguna", "Barishal", "Bhola", "Bogura", "Brahmanbaria",
+  "Chandpur", "Chattogram", "Chuadanga", "Cox's Bazar", "Cumilla", "Dhaka", "Dinajpur",
+  "Faridpur", "Feni", "Gaibandha", "Gazipur", "Gopalganj", "Habiganj", "Jamalpur",
+  "Jashore", "Jhalokati", "Jhenaidah", "Joypurhat", "Khagrachhari", "Khulna",
+  "Kishoreganj", "Kurigram", "Kushtia", "Lakshmipur", "Lalmonirhat", "Madaripur",
+  "Magura", "Manikganj", "Meherpur", "Moulvibazar", "Munshiganj", "Mymensingh",
+  "Naogaon", "Narail", "Narayanganj", "Narsingdi", "Natore", "Netrokona", "Nilphamari",
+  "Noakhali", "Pabna", "Panchagarh", "Patuakhali", "Pirojpur", "Rajbari", "Rajshahi",
+  "Rangamati", "Rangpur", "Satkhira", "Shariatpur", "Sherpur", "Sirajganj",
+  "Sunamganj", "Sylhet", "Tangail", "Thakurgaon",
+];
+
 export default function CartPage() {
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
@@ -27,12 +45,20 @@ export default function CartPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
+  const [district, setDistrict] = useState("");
+  const [thana, setThana] = useState("");
+  const [villageCity, setVillageCity] = useState("");
+  const [roadBlockHouse, setRoadBlockHouse] = useState("");
+  const [message, setMessage] = useState("");
+
+  const [deliveryLocation, setDeliveryLocation] = useState<"inside" | "outside">("inside");
   const [paymentMethod, setPaymentMethod] = useState<"cod" | "card">("cod");
-  const [placingOrder, setPlacingOrder] = useState(false);
   const [orderError, setOrderError] = useState("");
   const [orderSuccess, setOrderSuccess] = useState(false);
+
+  // Tracks whether the user has manually picked a delivery location themselves.
+  // Once they do, auto-detection from the district field stops overriding their choice.
+  const userOverrodeLocation = useRef(false);
 
   useEffect(() => {
     if (userId) fetchCart();
@@ -43,6 +69,21 @@ export default function CartPage() {
   useEffect(() => {
     if (session?.user?.name) setName(session.user.name);
   }, [session]);
+
+  // Auto-detect delivery location from the selected district.
+  // Dhaka -> Inside Dhaka, any other district -> Outside Dhaka.
+  // This only runs until the user manually clicks a delivery location button themselves.
+  useEffect(() => {
+    if (userOverrodeLocation.current) return;
+    if (!district) return;
+
+    setDeliveryLocation(district === "Dhaka" ? "inside" : "outside");
+  }, [district]);
+
+  const handleManualLocationSelect = (location: "inside" | "outside") => {
+    userOverrodeLocation.current = true;
+    setDeliveryLocation(location);
+  };
 
   const fetchCart = async () => {
     setLoading(true);
@@ -90,47 +131,16 @@ export default function CartPage() {
   };
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const shippingFee = subtotal > 0 ? 5 : 0;
+  const shippingFee =
+    subtotal > 0
+      ? deliveryLocation === "inside"
+        ? DELIVERY_FEE_INSIDE_DHAKA
+        : DELIVERY_FEE_OUTSIDE_DHAKA
+      : 0;
   const total = subtotal + shippingFee;
 
-  const placeOrder = async () => {
-    setOrderError("");
-
-    if (!name.trim() || !phone.trim() || !address.trim() || !city.trim()) {
-      setOrderError("Please fill in all delivery details.");
-      return;
-    }
-
-    setPlacingOrder(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          name: name.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          city: city.trim(),
-          paymentMethod,
-        }),
-      });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setOrderError(data.message || "Failed to place order.");
-        return;
-      }
-
-      setOrderSuccess(true);
-      setCartItems([]);
-    } catch (err) {
-      console.error(err);
-      setOrderError("Something went wrong. Please try again.");
-    } finally {
-      setPlacingOrder(false);
-    }
-  };
+  // Combine the detailed address fields into one string for storage/display
+  const fullAddress = [roadBlockHouse, villageCity, thana, district].filter(Boolean).join(", ");
 
   // ---- Not logged in ----
   if (!userId) {
@@ -296,53 +306,163 @@ export default function CartPage() {
                   placeholder="Phone number"
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+
+                {/* District dropdown */}
+                <select
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                >
+                  <option value="">Select District (জেলা)</option>
+                  {DISTRICTS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+
                 <input
                   type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Street address"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="City"
+                  value={thana}
+                  onChange={(e) => setThana(e.target.value)}
+                  placeholder="Thana / Upazila (থানা)"
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
 
-                <div className="flex gap-2 pt-1">
-                  <button
-                    onClick={() => setPaymentMethod("cod")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium border transition ${
-                      paymentMethod === "cod"
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-600 border-gray-300"
-                    }`}
-                  >
-                    Cash on Delivery
-                  </button>
-                  <button
-                    onClick={() => setPaymentMethod("card")}
-                    className={`flex-1 py-2 rounded-lg text-xs font-medium border transition ${
-                      paymentMethod === "card"
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-600 border-gray-300"
-                    }`}
-                  >
-                    Card Payment
-                  </button>
+                <input
+                  type="text"
+                  value={villageCity}
+                  onChange={(e) => setVillageCity(e.target.value)}
+                  placeholder="Village / City (গ্রাম/শহর)"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+
+                <input
+                  type="text"
+                  value={roadBlockHouse}
+                  onChange={(e) => setRoadBlockHouse(e.target.value)}
+                  placeholder="Road / Block / House No (রোড/ব্লক/বাড়ি নং)"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Message for delivery (optional)"
+                  rows={2}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+
+                {/* Delivery Location */}
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">
+                    Delivery Location{" "}
+                    {!userOverrodeLocation.current && district && (
+                      <span className="text-gray-400 font-normal">(auto-detected)</span>
+                    )}
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleManualLocationSelect("inside")}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition ${deliveryLocation === "inside"
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-600 border-gray-300"
+                        }`}
+                    >
+                      Inside Dhaka
+                    </button>
+                    <button
+                      onClick={() => handleManualLocationSelect("outside")}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition ${deliveryLocation === "outside"
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-600 border-gray-300"
+                        }`}
+                    >
+                      Outside Dhaka
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Select your district above and we&apos;ll pick this automatically — or select
+                    it yourself.
+                  </p>
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <p className="text-xs font-medium text-gray-500 mb-1.5">Payment Method</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPaymentMethod("cod")}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition ${paymentMethod === "cod"
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-600 border-gray-300"
+                        }`}
+                    >
+                      Cash on Delivery
+                    </button>
+                    <button
+                      onClick={() => setPaymentMethod("card")}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium border transition ${paymentMethod === "card"
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-600 border-gray-300"
+                        }`}
+                    >
+                      Card Payment
+                    </button>
+                  </div>
                 </div>
 
                 {orderError && <p className="text-xs text-red-500">{orderError}</p>}
 
-                <button
-                  onClick={placeOrder}
-                  disabled={placingOrder}
-                  className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium disabled:opacity-50 hover:bg-black transition"
+                <form
+                  action={`/api/checkout-sessions`}
+                  method="POST"
+                  onSubmit={(e) => {
+                    if (
+                      !name.trim() ||
+                      !phone.trim() ||
+                      !district.trim() ||
+                      !thana.trim() ||
+                      !villageCity.trim() ||
+                      !roadBlockHouse.trim()
+                    ) {
+                      e.preventDefault();
+                      setOrderError("Please fill in all delivery details.");
+                      return;
+                    }
+                    setOrderError("");
+                  }}
                 >
-                  {placingOrder ? "Placing order..." : `Place Order · $${total.toFixed(2)}`}
-                </button>
+                  <input type="hidden" name="userId" value={userId} />
+                  <input type="hidden" name="name" value={name} />
+                  <input type="hidden" name="phone" value={phone} />
+                  <input type="hidden" name="district" value={district} />
+                  <input type="hidden" name="thana" value={thana} />
+                  <input type="hidden" name="villageCity" value={villageCity} />
+                  <input type="hidden" name="roadBlockHouse" value={roadBlockHouse} />
+                  <input type="hidden" name="message" value={message} />
+                  <input type="hidden" name="address" value={fullAddress} />
+                  <input type="hidden" name="city" value={villageCity} />
+                  <input type="hidden" name="deliveryLocation" value={deliveryLocation} />
+                  <input type="hidden" name="shippingFee" value={shippingFee} />
+                  <input type="hidden" name="subtotal" value={subtotal} />
+                  <input
+                    type="hidden"
+                    name="totalAmount"
+                    value={paymentMethod === "card" ? total : shippingFee}
+                  />
+                  <input type="hidden" name="paymentMethod" value={paymentMethod} />
+                  <input type="hidden" name="cartItems" value={JSON.stringify(cartItems)} />
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-black transition"
+                  >
+                    {paymentMethod === "card"
+                      ? `Place Order · $${total.toFixed(2)}`
+                      : `Pay Delivery Fee · $${shippingFee.toFixed(2)}`}
+                  </button>
+                </form>
               </div>
             )}
           </div>
