@@ -135,7 +135,7 @@ export default function ShopPage() {
             <option value="">All Genders</option>
             <option value="men">Men</option>
             <option value="women">Women</option>
-            <option value="child">Kids</option>
+            <option value="kids">Kids</option>
           </select>
 
           {/* Price range */}

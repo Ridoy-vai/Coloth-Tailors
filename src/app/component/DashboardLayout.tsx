@@ -69,9 +69,8 @@ const menuConfig: MenuItem[] = [
   // ---------- user ----------
   { id: "user-overview", name: "Dashboard", icon: ChartSpline, href: "/dashboard/user", role: "user" },
   { id: "user-orders", name: "My Orders", icon: ShoppingBag, href: "/dashboard/user/orders", role: "user" },
-  { id: "user-wishlist", name: "Wishlist", icon: Heart, href: "/dashboard/user/wishlist", role: "user" },
-  { id: "user-reviews", name: "My Reviews", icon: Star, href: "/dashboard/user/reviews", role: "user" },
-  { id: "user-profile", name: "Edit Profile", icon: UserRoundPen, href: "/dashboard/user/profile", role: "user" },
+  { id: "user-activity", name: "My Activity", icon: Star, href: "/dashboard/user/myactivity", role: "user" },
+  { id: "user-profile", name: "Edit Profile", icon: UserRoundPen, href: "/dashboard/user/myprofile", role: "user" },
 ];
 
 const themeConfig: Record<Role, ThemeColors> = {
