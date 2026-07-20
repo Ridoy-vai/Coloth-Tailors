@@ -151,8 +151,8 @@ export default function Hero() {
                             aria-label={`Show slide ${index + 1}: ${slide.label}`}
                             aria-current={active}
                             className={`group relative h-9 overflow-hidden rounded-[3px] border transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#C9A24B] ${active
-                                    ? 'w-16 border-[#C9A24B]'
-                                    : 'w-6 border-[#F5F1E8]/30 hover:border-[#F5F1E8]/70'
+                                ? 'w-16 border-[#C9A24B]'
+                                : 'w-6 border-[#F5F1E8]/30 hover:border-[#F5F1E8]/70'
                                 }`}
                         >
                             <span
