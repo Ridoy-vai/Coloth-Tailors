@@ -17,6 +17,8 @@ type Product = {
   category: string;
   gender: string;
   inStock: boolean;
+  avgRating?: number | null;
+  reviewCount?: number;
 };
 
 export default function AIAssistant() {
@@ -30,6 +32,7 @@ export default function AIAssistant() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>("");
+  const [userId, setUserId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Use the logged-in user's ID as the chat identifier.
@@ -43,6 +46,7 @@ export default function AIAssistant() {
       let id: string;
       if (loggedInUserId) {
         id = `user_${loggedInUserId}`;
+        setUserId(loggedInUserId);
       } else {
         let guestId = localStorage.getItem("ai_assistant_guest_id");
         if (!guestId) {
@@ -87,6 +91,7 @@ export default function AIAssistant() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId,
+          userId,
           messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
@@ -198,7 +203,10 @@ export default function AIAssistant() {
                         >
                           <div className="min-w-0">
                             <p className="text-xs font-medium text-gray-800 truncate">{p.title}</p>
-                            <p className="text-[11px] text-gray-400">{p.category}</p>
+                            <p className="text-[11px] text-gray-400">
+                              {p.category}
+                              {p.avgRating ? ` · ★ ${p.avgRating} (${p.reviewCount})` : ""}
+                            </p>
                           </div>
                           <span className="text-xs font-semibold text-gray-900 shrink-0 ml-2">
                             ${p.price}

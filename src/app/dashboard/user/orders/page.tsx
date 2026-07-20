@@ -133,7 +133,7 @@ export default function MyOrdersPage() {
           <Package size={40} className="mx-auto text-gray-300 mb-4" />
           <p className="text-gray-400 mb-5">You haven&apos;t placed any orders yet.</p>
           <Link
-            href="/shop"
+            href="/Shop"
             className="inline-block px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
           >
             Browse Products

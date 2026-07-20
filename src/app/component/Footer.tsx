@@ -1,6 +1,7 @@
 "use client"
 import Link from "next/link";
 import { Cormorant_Garamond, Jost } from "next/font/google";
+import { usePathname } from "next/navigation";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -16,6 +17,10 @@ const jost = Jost({
 });
 
 export default function Footer() {
+  const pathname = usePathname();
+  if (pathname.includes("dashboard")) {
+    return null;
+  }
   return (
     <footer
       className={`${cormorant.variable} ${jost.variable} relative bg-[#17140F] px-[6vw] font-[family-name:var(--font-body)] font-light text-[#C9BCA4]`}
@@ -112,7 +117,7 @@ export default function Footer() {
               { label: "Men's Collection", href: "/shop?gender=men" },
               { label: "Women's Collection", href: "/shop?gender=women" },
               { label: "Kids' Collection", href: "/shop?gender=kids" },
-              { label: "All Products", href: "/Shop-page" },
+              { label: "All Products", href: "/Shop" },
             ].map((l) => (
               <li key={l.label}>
                 <Link

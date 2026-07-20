@@ -260,7 +260,7 @@ export default function UserOverviewPage() {
             <ShoppingBag size={32} className="mx-auto text-slate-200 mb-3" />
             <p className="text-sm text-slate-400 mb-4">You haven&apos;t placed any orders yet.</p>
             <Link
-              href="/shop"
+              href="/Shop"
               className="inline-block px-5 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
             >
               Browse Products

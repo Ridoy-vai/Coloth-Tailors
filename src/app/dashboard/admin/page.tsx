@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   LineChart,
   Line,
@@ -43,11 +43,7 @@ export default function AdminOverviewPage() {
   const [userCount, setUserCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [ordersResult, productsResult, usersResult] = await Promise.allSettled([
@@ -58,7 +54,15 @@ export default function AdminOverviewPage() {
 
       if (ordersResult.status === "fulfilled") {
         if (ordersResult.value.success) {
-          setOrders(ordersResult.value.result || []);
+          const fetchedOrders = (ordersResult.value.result as Order[] | undefined) ?? [];
+          setOrders(fetchedOrders);
+          // Debug: see exactly what came back from the API
+          console.log("Fetched orders count:", fetchedOrders.length);
+          console.log(
+            "Unique status values found:",
+            Array.from(new Set(fetchedOrders.map((order: Order) => order.status)))
+          );
+          console.log("Sample order:", fetchedOrders[0]);
         } else {
           console.error("Orders API returned an error:", ordersResult.value.message);
         }
@@ -88,9 +92,16 @@ export default function AdminOverviewPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const deliveredOrders = orders.filter((o) => o.status === "delivered");
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  const deliveredOrders = useMemo(
+    () => orders.filter((o) => o.status?.toLowerCase() === "delivered"),
+    [orders]
+  );
   const totalRevenue = deliveredOrders.reduce((sum, o) => sum + getOrderAmount(o), 0);
 
   // Revenue for the last 7 days
@@ -190,7 +201,7 @@ export default function AdminOverviewPage() {
                 <YAxis tick={{ fontSize: 12, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
                 <Tooltip
                   formatter={(value) => {
-                    const numericValue = typeof value === "number" ? value : 0;
+                    const numericValue = Number(value ?? 0);
                     return [`$${numericValue.toFixed(2)}`, "Revenue"];
                   }}
                   contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 13 }}
@@ -236,11 +247,7 @@ export default function AdminOverviewPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value, name) => {
-                    const numericValue = typeof value === "number" ? value : Number(value ?? 0);
-                    const label = typeof name === "string" ? name : String(name);
-                    return [numericValue, label] as [number, string];
-                  }}
+                  formatter={(value, name) => [value ?? 0, name]}
                   contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", fontSize: 13 }}
                 />
                 <Legend

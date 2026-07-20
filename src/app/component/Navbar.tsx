@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
+import { usePathname } from "next/navigation";
 
 // Gender-based dropdowns (hover shows categories)
 const NAV_STRUCTURE = [
@@ -25,7 +26,7 @@ const NAV_STRUCTURE = [
 
 // Plain direct links, no dropdown
 const DIRECT_LINKS = [
-  { label: "All Products", href: "/Shop-page" },
+  { label: "All Products", href: "/Shop" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];
@@ -43,6 +44,7 @@ type SearchResult = {
 const HOVER_CLOSE_DELAY = 200;
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -69,6 +71,8 @@ export default function Navbar() {
     if (dropdownCloseTimer.current) clearTimeout(dropdownCloseTimer.current);
     dropdownCloseTimer.current = setTimeout(() => setOpenDropdown(null), HOVER_CLOSE_DELAY);
   }, []);
+
+
 
   // ---- Account dropdown: pure click-toggle (see button onClick below) ----
 
@@ -141,6 +145,10 @@ export default function Navbar() {
     setMobileExpanded(null);
   };
 
+  if (pathname.includes("dashboard")) {
+    return null;
+  }
+
   return (
     <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -176,7 +184,7 @@ export default function Navbar() {
                     {section.categories.map((cat) => (
                       <Link
                         key={cat}
-                        href={`/Shop-page?gender=${section.gender}&category=${encodeURIComponent(cat)}`}
+                        href={`/Shop?gender=${section.gender}&category=${encodeURIComponent(cat)}`}
                         className="block px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition-colors"
                       >
                         {cat}
@@ -265,7 +273,7 @@ export default function Navbar() {
                       </Link>
                     ))}
                     <Link
-                      href={`/Shop-page?search=${encodeURIComponent(query)}`}
+                      href={`/Shop?search=${encodeURIComponent(query)}`}
                       onClick={() => setShowResults(false)}
                       className="block text-center py-2.5 text-sm font-medium text-blue-600 hover:bg-blue-50 border-t border-gray-100"
                     >
@@ -473,7 +481,7 @@ export default function Navbar() {
                           {section.categories.map((cat) => (
                             <Link
                               key={cat}
-                              href={`/Shop-page?gender=${section.gender}&category=${encodeURIComponent(cat)}`}
+                              href={`/Shop?gender=${section.gender}&category=${encodeURIComponent(cat)}`}
                               onClick={closeAccountMenu}
                               className="block py-1.5 text-sm text-gray-600 hover:text-blue-600"
                             >
@@ -562,7 +570,7 @@ export default function Navbar() {
                       </Link>
                     ))}
                     <Link
-                      href={`/Shop-page?search=${encodeURIComponent(query)}`}
+                      href={`/Shop?search=${encodeURIComponent(query)}`}
                       onClick={() => {
                         setShowResults(false);
                         setMobileSearchOpen(false);

@@ -64,7 +64,7 @@ const menuConfig: MenuItem[] = [
   { id: "admin-add-product", name: "Add Product", icon: Plus, href: "/dashboard/admin/products/new", role: "admin" },
   { id: "admin-orders", name: "Orders", icon: ClipboardList, href: "/dashboard/admin/orders", role: "admin" },
   { id: "admin-users", name: "Users", icon: Users, href: "/dashboard/admin/users", role: "admin" },
-  { id: "admin-revenue", name: "Revenue", icon: DollarSign, href: "/dashboard/admin/revenue", role: "admin" },
+  // { id: "admin-revenue", name: "Revenue", icon: DollarSign, href: "/dashboard/admin/revenue", role: "admin" },
 
   // ---------- user ----------
   { id: "user-overview", name: "Dashboard", icon: ChartSpline, href: "/dashboard/user", role: "user" },

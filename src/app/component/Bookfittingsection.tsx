@@ -29,7 +29,7 @@ export default function BookFittingSection() {
             BOOK A FITTING
           </Link>
           <Link
-            href="/Shop-page"
+            href="/Shop"
             className="px-8 py-3 text-sm tracking-[0.08em] text-[#A6A296] transition-colors hover:text-[#141414]"
             style={{ fontFamily: "var(--font-display, serif)" }}
           >

@@ -200,7 +200,7 @@ export default function CartPage() {
           Thanks for your order. We&apos;ll deliver it to your address soon.
         </p>
         <Link
-          href="/shop"
+          href="/Shop"
           className="inline-block mt-6 px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
         >
           Continue Shopping
@@ -220,7 +220,7 @@ export default function CartPage() {
           <ShoppingBag size={40} className="mx-auto text-gray-300 mb-4" />
           <p className="text-gray-400 mb-5">Your cart is empty.</p>
           <Link
-            href="/shop"
+            href="/Shop"
             className="inline-block px-6 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
           >
             Browse Products

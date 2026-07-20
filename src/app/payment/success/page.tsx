@@ -226,7 +226,7 @@ export default async function PaymentSuccessPage({
         )}
 
         <Link
-          href="/shop"
+          href="/Shop"
           className="inline-block mt-7 px-7 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
         >
           Continue Shopping
